@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Stock Data Frontend</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      font-family: sans-serif;
+      overflow: hidden; /* <--- removes outside scrollbar */
+    }
+
+    .form-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.4rem;
+      background: #f5f5f5;
+      border-bottom: 1px solid #ccc;
+      height: 40px; /* slim bar */
+    }
+
+    .form-left, .form-center, .form-right {
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+
+    .form-left {
+      justify-content: flex-start;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+
+    .form-center {
+      justify-content: center;
+      font-size: 0.9rem;
+      font-weight: bold;
+    }
+
+    .form-right {
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
+
+    .form-right label {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.85rem;
+    }
+
+    input, select { padding:0.3rem; }
+    select { width:130px; }
+    button { padding:0.3rem 0.6rem; }
+
+    #output {
+      height: calc(100% - 40px); /* fill space below form */
+      width: 100%;
+      overflow: hidden;  /* <--- prevents pushing scrollbars */
+    }
+
+    #resultFrame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="form-row">
+    <div class="form-left">Page designed by Eshan Patel-9730425081</div>
+    <div class="form-center" id="clock">--/--/---- --:--</div>
+
+    <div class="form-right">
+      <label>Symbol <input id="symbol" value="PNB.NS" /></label>
+
+      <label>Type 
+        <select id="reqtype">
+          <option value="info">info</option>
+          <option value="intraday">intraday</option>
+          <option value="daily">daily</option>
+          <option value="qresult">qresult</option>
+          <option value="result">result</option>
+          <option value="balance">balance</option>
+          <option value="cashflow">cashflow</option>
+          <option value="dividend">dividend</option>
+          <option value="split">split</option>
+          <option value="other">other</option>
+        </select>
+      </label>
+
+      <button id="sendBtn">Fetch</button>
+    </div>
+  </div>
+
+  <div id="output">
+    <iframe id="resultFrame"></iframe>
+  </div>
+
+  <script type="module">
+    import { client } from "https://esm.run/@gradio/client";
+
+    const SPACE_URL = "https://eshan6704-backendmaster.hf.space";
+    let gradioClient;
+
+    async function init() {
+      gradioClient = await client(SPACE_URL);
+      startClock();
+    }
+
+    async function fetchData() {
+      const symbol = document.getElementById("symbol").value;
+      const reqtype = document.getElementById("reqtype").value;
+
+      try {
+        const result = await gradioClient.predict("/fetch_data", [symbol, reqtype]);
+        const htmlContent = result.data[0];
+
+        const iframe = document.getElementById("resultFrame");
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        doc.open();
+        doc.write(htmlContent);
+        doc.close();
+      } catch (err) {
+        const iframe = document.getElementById("resultFrame");
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        doc.open();
+        doc.write("<h1>Error</h1><p>" + err.message + "</p>");
+        doc.close();
+      }
+    }
+
+    function startClock() {
+      function updateClock() {
+        const now = new Date();
+        const d = String(now.getDate()).padStart(2, '0');
+        const mo = String(now.getMonth() + 1).padStart(2, '0');
+        const y = now.getFullYear();
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        document.getElementById("clock").textContent = `${d}/${mo}/${y} ${h}:${m}`;
+      }
+      updateClock();
+      setInterval(updateClock, 1000);
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("sendBtn").addEventListener("click", fetchData);
+      init();
+    });
+  </script>
+
+</body>
+</html>
